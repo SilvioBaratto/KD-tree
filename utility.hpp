@@ -14,15 +14,16 @@
 #include <omp.h>
 #include "knode.hpp"
 
-int getDataRows(std::string filename);
+int getDataRows(std::string filename){
+    int rows=0;
+    std::ifstream file(filename);
+    std::string line;
 
-std::vector<point<int>> getData(std::string filename);
+    while (getline(file, line)){ 
+        rows++;
+    }
 
-template<typename T> 
-void printKD(const std::string& prefix, const knode<T> * node, bool isLeft);
-
-template<typename T>  
-void printKD(const knode<T> * node);
-
+    return rows;
+}
 
 #endif

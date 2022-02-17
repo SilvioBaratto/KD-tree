@@ -1,5 +1,4 @@
-#include "utility.hpp"
-#include "kdtree.hpp"
+#include "kdtree_mpi.hpp"
 
 int main() {
     std::string filename = "dataset.csv";
