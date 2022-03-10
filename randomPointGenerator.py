@@ -9,7 +9,7 @@ import numpy as np
 
 
 file = open("dataset.csv", "w")
-dim = 10000000
+dim = 100
 seque = 1000
 writer = csv.writer(file)
 x = np.random.randint(1,seque,dim)
