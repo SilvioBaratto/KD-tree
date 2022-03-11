@@ -212,14 +212,14 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             std::cout << "rank != 0" << std::endl;
         #endif
         if(size / 2 != pow(2, level)){
-            std::cout << "Make tree parallel" << std::endl;
+            // std::cout << "Make tree parallel" << std::endl;
             level = level + 1;
             _knodes[med]._left = make_tree_parallel(begin, med, index, size, level, comm, which);
             which = which + 2;
             _knodes[med]._right = make_tree_parallel(med + 1, end, index, size, level, comm, which);
         }else{
             if(rank == which){
-                std::cout << "left part go serial" << std::endl;
+                // std::cout << "left part go serial" << std::endl;
             #ifdef DEBUG
                 std::cout << "rank[" << rank << "]" << " == which left" << std::endl;
             #endif
@@ -235,7 +235,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             else which = 1;
 
             if(rank == which){
-                std::cout << "right part go serial" << std::endl;
+                // std::cout << "right part go serial" << std::endl;
             #ifdef DEBUG
                 std::cout << "rank[" << rank << "]" << " == which right" << std::endl;
             #endif
@@ -251,12 +251,12 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             #endif
         }
     }else if(rank == 0){
-        std::cout << "merge the knode in the master process" << std::endl;
+        // std::cout << "merge the knode in the master process" << std::endl;
         #ifdef DEBUG
             std::cout << "rank == 0" << std::endl;
         #endif
         if(size / 2 != pow(2, level)){
-            std::cout << "make tree parallel 2" << std::endl;
+            // std::cout << "make tree parallel 2" << std::endl;
             level = level + 1;
             _knodes[med]._left = make_tree_parallel(begin, med, index, size, level, comm, which);
             which = which + 2;
