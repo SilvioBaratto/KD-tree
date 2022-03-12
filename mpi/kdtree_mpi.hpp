@@ -5,19 +5,16 @@ class kdtree{
 
     public:
 
-        kdtree(std::string filename, int size):
+        kdtree(std::string filename, int size, int rank):
         _knodes{getValues(filename)} {
-            // auto start = std::chrono::high_resolution_clock::now();
-            //double mpi_time;
-            //mpi_time = MPI_Wtime();
+            double mpi_time;
+            mpi_time = MPI_Wtime();
             _root = make_tree_parallel(0, _knodes.size(), 0, size, 0, MPI_COMM_WORLD, 1);
             //_root = make_tree(0, _knodes.size(), 0);
-            //mpi_time = MPI_Wtime() - mpi_time;
-            //std::cout << mpi_time << std::endl;
-            // auto stop = std::chrono::high_resolution_clock::now();
-            // _root = make_tree(0, _knodes.size(), 0);
-            // auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-            // std::cout << "Time to making the tree: " << duration.count() << std::endl;
+            mpi_time = MPI_Wtime() - mpi_time;
+            if(rank == 0){
+                std::cout << "Time to making the tree: " << mpi_time << std::endl;
+            }
         }
 
         knode<coordinate> * make_tree(std::size_t begin, std::size_t end, std::size_t index);
@@ -206,8 +203,9 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     _knodes[med]._axis = index;
     index = (index + 1) % DIM;
 
+    mpi_time = MPI_Wtime();
+
     if(rank != 0){
-        std::cout << "rank[" << rank << "]" << " which: " << which << std::endl;
         #ifdef DEBUG
             std::cout << "rank != 0" << std::endl;
         #endif
@@ -285,7 +283,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
 
             MPI_Probe(which, 20, comm, &status);
             MPI_Get_count(&status, MPI_CHAR, &count);
-            std::cout << count << std::endl;
+            // std::cout << count << std::endl;
             char * buf2 = new char[count];
             MPI_Recv(buf2, count, MPI_CHAR, which, 20, comm, &status);
             std::string bla2(buf2, count);
@@ -297,6 +295,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             // std::cout << "rank: " << rank << " Time to deserialize right: " << mpi_time << std::endl;
         }
     }
+
     return &_knodes[med];
 }
 

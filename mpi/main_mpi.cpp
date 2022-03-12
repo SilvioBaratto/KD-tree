@@ -9,16 +9,7 @@ int main(int argc, char * argv[]) {
     MPI_Comm_size( MPI_COMM_WORLD, &size );
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
-    double mpi_time;
-    mpi_time = MPI_Wtime();
-
-    kdtree<int, 2> tree(filename, size);
-
-    mpi_time = MPI_Wtime() - mpi_time;
-
-
-    std::cout << "rank: " << rank << " Time to making the tree: " << mpi_time << std::endl;
-   
+    kdtree<int, 2> tree(filename, size, rank);
 
     #ifdef DEBUG
         knode<int> * root = tree.get_root();
