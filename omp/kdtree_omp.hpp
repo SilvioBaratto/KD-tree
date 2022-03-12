@@ -7,11 +7,11 @@ class kdtree{
 
         kdtree(std::string filename):
         _knodes{getValues(filename)} {
-            auto start = std::chrono::high_resolution_clock::now();
+            auto start = omp_get_wtime();
             _root = make_tree_parallel(0, _knodes.size(), 0);
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-            std::cout << "Time to making the tree: " << duration.count() << std::endl;
+            auto stop = omp_get_wtime();
+            auto duration = stop - start;
+            std::cout << "Time to making the tree: " << duration << std::endl;
         }
 
         knode<coordinate> * make_tree(std::size_t begin, std::size_t end, std::size_t index);
@@ -57,10 +57,14 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
     _knodes[med]._axis = index;
     index = (index + 1) % DIM;
 
-    #pragma omp task
-    _knodes[med]._left = make_tree(begin, med, index);
-    #pragma omp task
-    _knodes[med]._right = make_tree(med + 1, end, index);
+    #pragma omp task firstprivate(index)
+    {
+        _knodes[med]._left = make_tree(begin, med, index);
+    }
+    #pragma omp task firstprivate(index)
+    {
+        _knodes[med]._right = make_tree(med + 1, end, index);
+    }
 
     return &_knodes[med];
 }
@@ -69,11 +73,10 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
 template<typename coordinate, std::size_t dimension>
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_t begin, std::size_t end, std::size_t index){
     knode<coordinate> * root;
-    #pragma omp parallel
+    #pragma omp parallel shared(root)
     { 
         #pragma omp single 
         {
-            #pragma omp task shared(root)
             root = make_tree(begin, end, index);
         }
     }
