@@ -185,3 +185,10 @@ void print_tree(knode<T> * node) {
     print_tree(node, "", false);
 }
 
+template<typename T>
+void print_points(std::vector<knode<T>> node){
+    for(int i = 0; i < node.size(); i++){
+        std::cout << node[i]._point.x() << ", " << node[i]._point.y();
+    }
+    std::cout << std::endl;
+}

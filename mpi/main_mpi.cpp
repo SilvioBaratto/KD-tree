@@ -24,6 +24,14 @@ int main(int argc, char * argv[]) {
 
     #ifdef double_data
         kdtree<float, 2> tree(filename, size, rank);
+        if(rank == 0){
+            knode<float> * root = tree.get_root();
+            std::string kdtree_ser = serialize_node(root);
+            double time =  MPI_Wtime();
+            knode<float> * root_des = deserialize_node_parallel<float, 2>(kdtree_ser);
+            time = MPI_Wtime() - time;
+            std::cout << "Time to deserialize: " << time << std::endl;
+        }
     #endif  
         
     MPI_Finalize();

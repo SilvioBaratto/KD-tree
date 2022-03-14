@@ -10,6 +10,7 @@ class kdtree{
             double mpi_time;
             mpi_time = MPI_Wtime(); 
             _root = make_tree_parallel(0, _knodes.size(), 0, size, 0, MPI_COMM_WORLD, 1);
+            //_root = make_tree(0, _knodes.size(), 0);
             mpi_time = MPI_Wtime() - mpi_time;
             if(rank == 0){
                 std::cout << size << ", " << mpi_time << std::endl;              
@@ -43,6 +44,7 @@ class kdtree{
         knode<coordinate> * get_root() {return _root;}
         knode<coordinate> * make_tree_parallel(std::size_t begin, std::size_t end, 
                                                 std::size_t index, int size, int depth, MPI_Comm comm, int which);
+        knode<coordinate> * buffer(int begin, int end);
 
         std::vector<knode<coordinate>> getValues(std::string filename);
         void nearest(knode<coordinate> * root, const point<coordinate, dimension>& point, size_t index);
@@ -62,8 +64,8 @@ class kdtree{
         double _best_dist = 0;
 };
 
-template<typename T>
-std::string serialize_node(knode<T> * node){
+template<typename coordinate>
+std::string serialize_node(knode<coordinate> * node){
 
     std::string s ("");
 
@@ -83,35 +85,14 @@ std::string serialize_node(knode<T> * node){
     return s;
 }
 
-template<typename T, std::size_t dimension>
-knode<T> * deserialize_node(std::string data){
+template<typename coordinate, std::size_t dimension>
+knode<coordinate> * deserialize_node(const std::string node){
 
-    std::string s = data;
-
-    if ( s.size() == 0 ){
-        return nullptr; 
-    }
-    
-    if ( s[0] == ')'){ 
-        return nullptr; 
-    }
-
+    const std::size_t size = node.size();
     int j = 0;
-
-    while ( j < s.size() && s[j] != '(' ) 
-        j ++;
-
-    T arr[dimension];
+    int i;
+    coordinate arr[dimension];
     std::string temp_str;
-    if ( s[1] == '[' ){     
-        std::cout << "s[1] == '['" << std::endl; 
-        temp_str = s.substr(2, j - 5);
-        std::cout << temp_str << std::endl;
-
-    }else{
-        temp_str = s.substr(1, j - 5);
-   }
-
     #ifdef int_data
         int temp_val;
     #endif
@@ -119,46 +100,67 @@ knode<T> * deserialize_node(std::string data){
     #ifdef double_data
         float temp_val;
     #endif
+
+    if ( size == 0 ){
+        return nullptr; 
+    }
+    
+    if ( node[0] == ')'){ 
+        return nullptr; 
+    }
+    
+    while ( j < size && node[j] != '(' ) 
+        j ++;
+    
+    if ( node[1] == '[' ){     
+        temp_str = node.substr(2, j - 5);
+    }else{
+        temp_str = node.substr(1, j - 5);
+    }
+
     std::istringstream iss(temp_str);
-    for(int i = 0; i < dimension; ++i) {
+    for(i = 0; i < dimension; ++i) {
         iss >> temp_val;
         arr[i] = temp_val;
         if (iss.peek() == ',')
             iss.ignore();
     }
     
-    
+    point<coordinate, dimension> point{{arr[0], arr[1]}};
 
-    point<T, dimension> point{{arr[0], arr[1]}};
+    knode<coordinate> * root = new knode<coordinate>{point};
 
-    knode<T> * root = new knode<T>{point};
-
-    temp_val = (int)s[j - 2] - 48; //the numbers starts from 48 in the ASCII code
+    temp_val = (int)node[j - 2] - 48; //the numbers starts from 48 in the ASCII code
     if(temp_val > 1 || temp_val < 0) temp_val = 0;
 
     root -> _axis = temp_val; //where axis is saved
 
-    int left = 0, i = j;
-    
-    while ( i < s.size() ) {
-        if ( s[i] == '(' ) 
+    int left = 0;
+    i = j;
+
+    while ( i < size ) {
+        if ( node[i] == '(' ){ 
             left ++;
-        else if ( s[i] == ')' ) 
+        }
+
+        if ( node[i] == ')'){
             left --;
+        }
 
         if ( left == 0 ) {
             break;
         }
         i ++;
     }
+    
 
-    if ( j < s.size() - 1) {       
+    if ( j < size - 1) {       
         #pragma omp task  
-        root-> _left = deserialize_node<T, dimension>(s.substr(j + 1, i - 1 - j));
+        root-> _left = deserialize_node<coordinate, dimension>(node.substr(j + 1, i - 1 - j));
     }
-    if ( i + 1 < s.size() - 1) {      
+    if ( i + 1 < size - 1) {      
         #pragma omp task
-        root-> _right = deserialize_node<T, dimension>(s.substr(i + 2, s.size() - i - 2));   
+        root-> _right = deserialize_node<coordinate, dimension>(node.substr(i + 2, size - i - 2));   
     }  
 
     return root;
@@ -214,15 +216,14 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     if(rank != 0){
         if(size / 2 != pow(2, depth)){
             depth = depth + 1;
-            // #pragma omp task
-            #pragma omp single 
             _knodes[med]._left = make_tree_parallel(begin, med, index, size, depth, comm, which);
             which = which + 2;
-            #pragma omp single 
             _knodes[med]._right = make_tree_parallel(med + 1, end, index, size, depth, comm, which);
 
         }else{
             if(rank == which){
+                #pragma omp parallel
+                #pragma omp single 
                 _knodes[med]._left = make_tree(begin, med, index);
                 std::string kdtree_str = serialize_node(_knodes[med]._left);            
                 //MPI_Send(kdtree_str.c_str(), kdtree_str.length(), MPI_CHAR, 0, 10, comm);
@@ -233,6 +234,8 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             else which = 1;
 
             if(rank == which){
+                #pragma omp parallel
+                #pragma omp single
                 _knodes[med]._right = make_tree(med + 1, end, index);
                 std::string kdtree_str = serialize_node(_knodes[med]._right);
                 // MPI_Send( kdtree_str.c_str() , kdtree_str.length() , MPI_CHAR , 0 , 20 , comm);
@@ -242,10 +245,8 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     }else if(rank == 0){
         if(size / 2 != pow(2, depth)){
             depth = depth + 1;
-            #pragma omp single 
             _knodes[med]._left = make_tree_parallel(begin, med, index, size, depth, comm, which);
             which = which + 2;
-            #pragma omp single
             _knodes[med]._right = make_tree_parallel(med + 1, end, index, size, depth, comm, which);
 
         }else{
@@ -367,4 +368,12 @@ void print_tree(knode<T> * node, const std::string &prefix, bool isLeft) {
 template<typename T>
 void print_tree(knode<T> * node) {
     print_tree(node, "", false);
+}
+
+template<typename T>
+void print_points(std::vector<knode<T>> node){
+    for(int i = 0; i < node.size(); i++){
+        std::cout << "(" << node[i]._point.x() << ", " << node[i]._point.y() << ")";
+    }
+    std::cout << std::endl;
 }

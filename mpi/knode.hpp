@@ -8,6 +8,8 @@ struct knode{
     knode(const point_type& pt):
         _point{pt}, _left{nullptr}, _right{nullptr}, _axis{-1} {}
 
+    knode(): _axis{-1}, _point{{NULL, NULL}}, _left{nullptr}, _right{nullptr} {}
+
     coordinate get(std::size_t index) const{
         return _point.get(index);
     }
