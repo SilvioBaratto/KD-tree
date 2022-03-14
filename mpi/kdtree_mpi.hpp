@@ -137,23 +137,20 @@ knode<coordinate> * deserialize_node(const std::string node){
 
     int left = 0;
     i = j;
-    #pragma omp parallel
-    {
-        #pragma omp single
-        while ( i < size ) {
-            if ( node[i] == '(' ){ 
-                left ++;
-            }
 
-            if ( node[i] == ')'){
-                left --;
-            }
-
-            if ( left == 0 ) {
-                break;
-            }
-            i ++;
+    while ( i < size ) {
+        if ( node[i] == '(' ){ 
+            left ++;
         }
+
+        if ( node[i] == ')'){
+            left --;
+        }
+
+        if ( left == 0 ) {
+            break;
+        }
+        i ++;
     }
 
     if ( j < size - 1) {       
