@@ -24,17 +24,17 @@ cd bin
 
 for i in {2..48}
 do
-    mpirun -np ${i} --map-by socket tree_mpi.x >> ../time/strong/mpi.out
+    mpirun -np ${i} --map-by socket tree_mpi.x ../datasets/float/dataset.csv >> ../time/strong/mpi.out
 done
 
 for i in {2..48}
 do
     export OMP_NUM_THREADS=${i} 
-    ./tree_omp.x >> ../time/strong/omp.out
+    ./tree_omp.x ../datasets/float/dataset.csv >> ../time/strong/omp.out 
 done
 
 for i in {2..48}
 do
     export OMP_NUM_THREADS=${i}
-    ./tree_serial.x >> ../time/strong/serial.out
+    ./tree_serial.x ../datasets/float/dataset.csv >> ../time/strong/serial.out
 done
