@@ -7,6 +7,10 @@
 
 #define DIM 2
 
+/**
+*   @brief this class define a point of the knode data structure
+*   @param array array of n dimension x: position[0], y: position[1] etc.
+*/
 template<typename coordinate, std::size_t dimension>
 class point{
     public:
@@ -21,11 +25,13 @@ class point{
             return _points[index];
         }
 
+        // return the x value
         coordinate x() const {return _points[0];}
 
+        // return the y value
         coordinate y() const {return _points[1];}
 
-        std::string save_kpoints(int axis);
+        std::string print_point(int axis);
 
         double distance(const point& pt) const {
             double dist = 0;
@@ -54,17 +60,17 @@ std::ostream& operator<<(std::ostream& os, const point<coordinate, dimension>& p
 }
 
 template<typename coordinate, std::size_t dimension>
-std::string point<coordinate, dimension>::save_kpoints(int axis){
-    std::string s ("");
-    s += "[";
+std::string point<coordinate, dimension>::print_point(int axis){
+    std::string point = "";
+    point += "[";
 
     for(auto i = 0; i < dimension; i++){
-        s += std::to_string(_points[i]);
-        s += ",";
+        point += std::to_string(_points[i]);
+        point += ",";
     }
-    s += ";";
-    s += std::to_string(axis);
-    s += "]";
+    point += ";";
+    point += std::to_string(axis);
+    point += "]";
 
-    return s;
+    return point;
 }

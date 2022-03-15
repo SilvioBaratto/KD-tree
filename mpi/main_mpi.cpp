@@ -12,25 +12,47 @@ int main(int argc, char * argv[]) {
         argc > 1 ? argv[1] : "../datasets/float/benchmark.csv";
     #endif
 
-    int size, rank;
+    int nprocs, rank;
     MPI_Init(&argc, &argv);
 
-    MPI_Comm_size( MPI_COMM_WORLD, &size );
+    MPI_Comm_size( MPI_COMM_WORLD, &nprocs );
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
     #ifdef int_data
-        kdtree<int, 2> tree(filename, size, rank);
+        kdtree<int, 2> tree(filename, nprocs, rank);
+        if(rank == 0){
+            #ifdef int_data_DEBUG
+            knode<int> * root = tree.get_root();
+            point<int, 2> n = tree.nearest({{9, 2}});
+            std::cout << filename << "\n";
+            // this are utility and debug functions
+            std::cout << "nearest point: " << n << '\n';
+            std::cout << "distance: " << tree.distance() << '\n';
+            std::cout << "nodes visited: " << tree.visited() << '\n';
+            // just for debug porpuse is not reccomend to print if the size is bigger than 1000
+            if(filename == ("../datasets/integer/benchmark.csv")){
+                print_tree(root);
+            }
+            #endif
+        }
     #endif
 
     #ifdef double_data
-        kdtree<float, 2> tree(filename, size, rank);
+        kdtree<float, 2> tree(filename, nprocs, rank);
         if(rank == 0){
-            knode<float> * root = tree.get_root();
-            std::string kdtree_ser = serialize_node(root);
-            double time =  MPI_Wtime();
-            knode<float> * root_des = deserialize_node_parallel<float, 2>(kdtree_ser);
-            time = MPI_Wtime() - time;
-            std::cout << "Time to deserialize: " << time << std::endl;
+            #ifdef double_data_DEBUG
+                knode<float> * root = tree.get_root();
+                point<float, 2> n = tree.nearest({{0.361, 0.674}});
+                std::cout << filename << "\n";
+                // this are utility and debug functions
+                std::cout << "nearest point: " << n << '\n';
+                std::cout << "distance: " << tree.distance() << '\n';
+                std::cout << "nodes visited: " << tree.visited() << '\n';
+                // just for debug porpuse is not reccomend to print if the size is bigger than 1000
+                if(filename == ("../datasets/float/benchmark.csv")){
+                    print_tree(root);
+                }
+            #endif
         }
     #endif  
         

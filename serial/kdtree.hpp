@@ -1,11 +1,19 @@
 #include "utility.hpp"
 
+/**
+*   @brief this class perform a serial KD-TREE 
+*/
 template<typename coordinate, std::size_t dimension>
 class kdtree{
 
     public:
 
-        kdtree(std::string filename):
+        /**
+        *@brief the constructor takes in input a filename and save in a vector of type
+        *       knode the values of the filename to be processed
+        *@param filename
+        */
+        explicit kdtree(std::string filename):
         _knodes{getValues(filename)} {
             auto time = omp_get_wtime();
             _root = make_tree(0, _knodes.size(), 0);
@@ -33,20 +41,39 @@ class kdtree{
         double _best_dist = 0;
 };
 
+/**
+*   @brief main function to produce the tree in serial. 
+*   @param begin the beginnin of the dataset
+*   @param end the end of the dataset
+*   @param index the index axis of the node
+*   @return the kdtree
+*/
+
 template<typename coordinate, std::size_t dimension>
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, std::size_t end, std::size_t index){
+    //stop criterion
     if(end <= begin) return nullptr;
-
+    //take the median point in the dataset
     std::size_t med = begin + (end - begin) / 2;
+    //save the first position in memory of the dataset
     auto i = _knodes.begin();
+    // - nth_element is a partial sorting algorithm that rearranges elementes in [first, last) such that:
+    //      a. The element at the nth position is the one which should be at the position if we sort the list.
+    //      b. It does not sort the list, just all the elements, which precede the nth element are not greater than it,
+    // - nth_element algorithm is implemented using introselect.
+    //      a. introselect is a hybrid of quickselect and median of medians algorithm
+    //          1. quickselect is used to find the kth smalles number in an unsorted array
+    //          2. median of medians is a median selection algorithm for better pivot selection maily used in quickselect
+    // 
+    // In our case we use this method to sort the array up to the median and take the value at the median point
     std::nth_element(i + begin, i + med, i + end, knode_cmp<coordinate>(index));
     _knodes[med]._axis = index;
     index = (index + 1) % DIM;
-
+    // build left part
     _knodes[med]._left = make_tree(begin, med, index);
-
+    // build right part
     _knodes[med]._right = make_tree(med + 1, end, index);
-
+    // return the pointer 
     return &_knodes[med];
 }
 
@@ -82,6 +109,13 @@ const point<coordinate, dimension>& kdtree<coordinate, dimension>::nearest(const
     return _best->_point;
 }
 
+/**
+*   @brief this function get the values from the filename and stores it to a vector of knode.
+*          the function is templated so can store both integer and floating point numbers
+*   @param filename
+*   @return knodes vector of integers or floating point numbers
+*/
+
 template<typename coordinate, std::size_t dimension>
 std::vector<knode<coordinate>> kdtree<coordinate, dimension>::getValues(std::string filename){
     std::string X, Y;
@@ -111,6 +145,9 @@ std::vector<knode<coordinate>> kdtree<coordinate, dimension>::getValues(std::str
     return data;
 }
 
+/**
+*   @brief debug function to output the kdtree complete in a simple way
+*/
 
 template<typename T>
 void print_tree(knode<T> * node, const std::string &prefix, bool isLeft) {
@@ -129,6 +166,11 @@ void print_tree(knode<T> * node, const std::string &prefix, bool isLeft) {
         if (node->_right) print_tree(node->_right, prefix + (isLeft ? "│   " : "    "), false);
     }
 }
+
+/**
+*   @brief debug function to output the kdtree complete in a simple way
+*   @param node tree created using make_tree function
+*/
 
 template<typename T>
 void print_tree(knode<T> * node) {

@@ -5,13 +5,19 @@ class kdtree{
 
     public:
 
+        /**
+        *@brief the constructor takes in input a filename and save in a vector of type
+        *       knode the values of the filename to be processed
+        *@param filename
+        */
+
         kdtree(std::string filename):
         _knodes{getValues(filename)} {
-            auto start = omp_get_wtime();
+            double start = omp_get_wtime();
             _root = make_tree_parallel(0, _knodes.size(), 0);
-            auto stop = omp_get_wtime();
-            auto duration = stop - start;
-            std::cout << omp_get_max_threads() << "," << duration << std::endl;
+            double stop = omp_get_wtime();
+            double duration = stop - start;
+            std::cout << omp_get_max_threads() << ", " << duration << std::endl;
         }
 
         knode<coordinate> * make_tree(std::size_t begin, std::size_t end, std::size_t index);
@@ -19,25 +25,15 @@ class kdtree{
         knode<coordinate> * make_tree_parallel(std::size_t begin, std::size_t end, std::size_t index);
 
         std::vector<knode<coordinate>> getValues(std::string filename);
-        void printData();
-        void printRootMemory();
+
         void nearest(knode<coordinate> * root, const point<coordinate, dimension>& point, size_t index);
         const point<coordinate, dimension>& nearest(const point<coordinate, dimension>& pt);
 
         std::size_t get_size() {return _knodes.size();}
 
-        std::vector<knode<coordinate>> get_left_knode(std::size_t begin, std::size_t end);
-
         bool empty() const {return _knodes.empty();}
         std::size_t visited() const {return _visited;}
         double distance() const {return std::sqrt(_best_dist);}
-
-        void print_knodes(){
-            for(int i = 0; i < _knodes.size(); i++){
-                std::cout << _knodes[i]._point;
-            }
-            std::cout << std::endl;
-        }
 
     private:
         knode<coordinate> * _root = nullptr;
@@ -46,6 +42,14 @@ class kdtree{
         std::size_t _visited;
         double _best_dist = 0;
 };
+
+/**
+*   @brief main function to produce the tree in parallel. 
+*   @param begin the beginnin of the dataset
+*   @param end the end of the dataset
+*   @param index the index axis of the node
+*   @return the kdtree
+*/
 
 template<typename coordinate, std::size_t dimension>
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, std::size_t end, std::size_t index){
@@ -69,6 +73,13 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
     return &_knodes[med];
 }
 
+/**
+*   @brief this function create a parallel region for the function make_tree for the execution in parallel. 
+*   @param begin the beginnin of the dataset
+*   @param end the end of the dataset
+*   @param index the index axis of the node
+*   @return the kdtree
+*/
 
 template<typename coordinate, std::size_t dimension>
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_t begin, std::size_t end, std::size_t index){
@@ -82,13 +93,6 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     }
     #pragma omp barrier
     return root;
-}
-
-template<typename coordinate, std::size_t dimension>
-std::vector<knode<coordinate>> kdtree<coordinate, dimension>:: get_left_knode(std::size_t begin, std::size_t end){
-    std::size_t med = begin + (end - begin) / 2;
-    std::vector<knode<coordinate>> left_points(_knodes.begin(), _knodes.begin() + med);
-    return left_points;
 }
 
 template<typename coordinate, std::size_t dimension>
@@ -123,22 +127,12 @@ const point<coordinate, dimension>& kdtree<coordinate, dimension>::nearest(const
     return _best->_point;
 }
 
-template<typename coordinate, std::size_t dimension>
-void kdtree<coordinate, dimension>::printData(){
-    int i = 0;
-    for(auto x: _knodes){
-        std::cout << x._left << ", ";
-    }
-    std::cout << std::endl;
-}
-
-template<typename coordinate, std::size_t dimension>
-void kdtree<coordinate, dimension>::printRootMemory(){
-    std::cout << std::endl;
-    for(int i = 0; i <_knodes.size(); i++){
-        std::cout << "(" << &_root[i]._left << ", " << &_root[i]._right << ")" << std::endl;
-    }
-}
+/**
+*   @brief this function get the values from the filename and stores it to a vector of knode.
+*          the function is templated so can store both integer and floating point numbers
+*   @param filename
+*   @return knodes vector of integers or floating point numbers
+*/
 
 template<typename coordinate, std::size_t dimension>
 std::vector<knode<coordinate>> kdtree<coordinate, dimension>::getValues(std::string filename){
@@ -169,6 +163,9 @@ std::vector<knode<coordinate>> kdtree<coordinate, dimension>::getValues(std::str
     return data;
 }
 
+/**
+*   @brief debug function to output the kdtree complete in a simple way
+*/
 
 template<typename T>
 void print_tree(knode<T> * node, const std::string &prefix, bool isLeft) {
@@ -187,6 +184,11 @@ void print_tree(knode<T> * node, const std::string &prefix, bool isLeft) {
         if (node->_right) print_tree(node->_right, prefix + (isLeft ? "│   " : "    "), false);
     }
 }
+
+/**
+*   @brief debug function to output the kdtree complete in a simple way
+*   @param node tree created using make_tree function
+*/
 
 template<typename T>
 void print_tree(knode<T> * node) {

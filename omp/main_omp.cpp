@@ -1,6 +1,11 @@
 #include "kdtree_omp.hpp"
 
 int main(int argc, char * argv[]) {
+
+    // the main could take two tipe of knode data structure: float and integer
+    // both take as input a file from a folder choose by the user in the terminal
+    // if the user does not pass any file from default the functions takes the default one
+
     #ifdef int_data
         const std::string filename =
         argc > 1 ? argv[1] : "../datasets/integer/benchmark.csv";
@@ -12,6 +17,7 @@ int main(int argc, char * argv[]) {
         std::cout << "nearest point: " << n << '\n';
         std::cout << "distance: " << tree.distance() << '\n';
         std::cout << "nodes visited: " << tree.visited() << '\n';
+        // just for debug porpuse is not reccomend to print if the size is bigger than 1000
         if(filename == ("../datasets/integer/benchmark.csv")){
             print_tree(root);
         }
@@ -29,6 +35,7 @@ int main(int argc, char * argv[]) {
             std::cout << "nearest point: " << n << '\n';
             std::cout << "distance: " << tree.distance() << '\n';
             std::cout << "nodes visited: " << tree.visited() << '\n';
+            // just for debug porpuse is not reccomend to print if the size is bigger than 1000
             if(filename == ("../datasets/float/benchmark.csv")){
                 print_tree(root);
             }

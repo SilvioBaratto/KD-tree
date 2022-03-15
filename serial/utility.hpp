@@ -12,6 +12,7 @@
 #include <typeinfo>
 #include "knode.hpp"
 
+
 int getMedianPosition(std::size_t begin, std::size_t end){
     int size = end - begin;
     int median_idx = size / 2 * 1 * ((size + 1) % 2);
