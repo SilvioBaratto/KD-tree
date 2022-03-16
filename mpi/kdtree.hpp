@@ -19,25 +19,14 @@ class kdtree{
         knode<coordinate> * make_tree_parallel(std::size_t begin, std::size_t end, std::size_t index);
 
         std::vector<knode<coordinate>> getValues(std::string filename);
-        void printData();
-        void printRootMemory();
         void nearest(knode<coordinate> * root, const point<coordinate, dimension>& point, size_t index);
         const point<coordinate, dimension>& nearest(const point<coordinate, dimension>& pt);
 
         std::size_t get_size() {return _knodes.size();}
 
-        std::vector<knode<coordinate>> get_left_knode(std::size_t begin, std::size_t end);
-
         bool empty() const {return _knodes.empty();}
         std::size_t visited() const {return _visited;}
         double distance() const {return std::sqrt(_best_dist);}
-
-        void print_knodes(){
-            for(int i = 0; i < _knodes.size(); i++){
-                std::cout << _knodes[i]._point;
-            }
-            std::cout << std::endl;
-        }
 
     private:
         knode<coordinate> * _root = nullptr;

@@ -134,7 +134,7 @@ std::vector<knode<coordinate>> kdtree<coordinate, dimension>::getValues(std::str
                     data.push_back(knode<coordinate>(point<coordinate, dimension>{{stoi(X), stoi(Y)}}));
                 #endif
                 #ifdef double_data
-                    data.push_back(knode<coordinate>(point<coordinate, dimension>{{stod(X), stod(Y)}}));
+                    data.push_back(knode<coordinate>(point<coordinate, dimension>{{stof(X), stof(Y)}}));
                 #endif
             }
             i++;
