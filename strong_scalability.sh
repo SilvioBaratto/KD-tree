@@ -6,6 +6,16 @@ make all src=mpi
 make all src=omp
 make all src=serial
 
+cd datasets/float/
+
+c++ write_data.cpp -o write_data.x
+echo "writing data"
+./write_data.x
+echo "finish writing datasets"
+
+cd ..
+cd ..
+
 cd bin
 
 declare -a nprocs=(2 4 8 16 24 32 48)
@@ -29,3 +39,7 @@ do
     export OMP_NUM_THREADS=${i}
     ./tree_serial.x ../datasets/float/dataset.csv >> ../time/strong/serial.out
 done
+
+cd ..
+cd datasets/float/
+rm *.csv

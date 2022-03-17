@@ -11,15 +11,14 @@
 #include <random>
 #include <iomanip>
 
+#define SIZE 100000000
 
-int main(int argc, char** argv)
+int main()
 {
     std::ofstream myfile;
-    int size;
-    std::cout << "write the size of the dataset: \n";
-    std::cin >> size;
     myfile.open ("dataset.csv");
-    for(int i = 0; i < size; i++){
+    int i;
+    for(i = 0; i < SIZE; i++){
         std::random_device rd;
         std::default_random_engine eng(rd());
         std::uniform_real_distribution<> distr(0, 1);

@@ -11,19 +11,13 @@
 #include <random>
 #include <iomanip>
 
+#define SIZE 100000000
 
 int main(int argc, char** argv)
 {
     std::ofstream myfile;
-    int size;
-    std::cout << "write the size of the dataset: \n";
-    std::cin >> size;
-    std::cout << "Write the name of the dataset: \n";
-    std::string data;
-    std::cin >> data;
-    data = data + ".csv";
-    myfile.open (data);
-    for(int i = 0; i < size; i++){
+    myfile.open ("dataset.csv");
+    for(int i = 0; i < SIZE; i++){
         int x = (rand() % 1000) + 1;
         int y = (rand() % 1000) + 1;
 
