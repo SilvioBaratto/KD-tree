@@ -6,8 +6,6 @@
 
 cd $PBS_O_WORKDIR
 
-cd Assignment2/KD-tree/
-
 module load openmpi-4.1.1+gnu-9.3.0
 
 cd time
