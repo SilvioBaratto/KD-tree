@@ -1,0 +1,160 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\usepackage{pdfpages}
+\usepackage{eurosym}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{letltxmacro}
+\usepackage{microtype}
+\usepackage[left=3cm,right=3cm,bottom=3.5cm]{geometry}
+\usepackage{emptypage}
+\usepackage{amsmath,amssymb,amsthm, latexsym}
+\usepackage[english,italian]{babel}
+\usepackage{url}
+\usepackage{caption}
+\captionsetup{tableposition=top,figureposition=bottom,font=small,format=hang,labelfont={sf,bf}}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{hyphenat}
+\pagestyle{empty}
+\newcommand\AlCentroPagina[1]{%
+\AddToShipoutPicture*{\AtPageCenter{%
+\makebox(0,0){\includegraphics%
+[width =0.9\paperwidth]{#1}}}}}
+
+\begin{document}
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}}
+\lstset{language=Java} 
+\lstset{basicstyle=\footnotesize\ttfamily}
+\author{Silvio Baratto}
+\title{
+\normalfont \normalsize 
+\textsc{Università degli studi di trieste} \\ [25pt] % Your university, school and/or department name(s)
+\horrule{0.5pt} \\[0.4cm] % Thin top horizontal rule
+\huge Assignment 2 KD-Tree\\ % The assignment title
+\horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
+}
+\maketitle
+\tableofcontents
+\newpage
+\section{Introduction}
+In computer science, a k-d dimensional tree is a space-partitioning data structure for organizing points in a k-dimensional space. k-d trees are a useful data structure for several applications, such as searches involving a multidimensional search key (e.g. range searches and nearest neighbor searches) and creating point clouds. k-d trees are a special case of binary space partitioning trees. In this brief report is presented a parallel implementations of k-d tree which uses two standard frameworks for parallel programming, namely OpenMP (shared memory) and MPI (distributed memory).
+\section{Algorithm}
+The construction of the tree is done by:
+\begin{center}
+\begin{itemize}
+\item Finding median / pivot by medians of the input file. Each section of constant lenght is sorted bt nth element. \\
+\item Recursively proceed on left and right portions on the left and right of the found median. Each median is a node. \\
+\item Terminate when length of a portion is 0. \\
+\item Return root node.
+\end{itemize}
+\end{center}
+The time complexity of the divide and conquer algorithm is $O(nlog(n))$ since the partition process always picks the middle element as pivot. The median of the medias is found in linear time, $O(n)$.\\
+Time complexity for partitioning n datapoints:
+\begin{equation*}
+T(n) = 2T(n / 2)+ \theta{(n)}
+\end{equation*}
+\subsection{Implementation}
+The KD-Tree implementation was made with C++17 and written using C++ templates so is a generic programming algorithm working with both float, integers and double numbers. The purpose of this code was to be as simple as possible to use from the point of view of a user. The goal was to provide a k-d tree given only a filename of points choose from a local directory of the user. Because of this in the constructors of all the three classes (mpi, omp, serial) creates a non ordered vector of knodes using as points the ones in the dataset. In the implementation the tree is created from the vector, in this way it has been possible to use the standard library functions easily. \\
+The implemented algorithm doesn’t use a sorting algorithm, but it uses the function provided by the standard
+library “$std::nth\_element()$”. This function is a partial sorting algorithm that rearranges elements in [first,
+last) such that:
+\begin{center}
+\begin{itemize}
+\item the element pointed at by nth (the median) is changed to whatever element would occur in that position if [first, last) were sorted. \\
+\item All of the elements before this new nth element (the median) are less than or equal to the elements after the new nth element. With this function, it’s possible to omit the implementation of a sorting algorithm because it has the best “worst expected running time”, that is $O(N)$. 
+\end{itemize}
+\end{center}
+\begin{algorithm}[H]
+\caption{makeTree}
+\begin{algorithmic}[1]
+\Function{makeTree}{begin, end, axis}
+\If{$end <= begin$}\Comment{base case}
+\State return $\textit{nullptr}$
+\EndIf
+\State $\textit{median} \gets begin + (end - begin) / 2$
+\State $\Call{medianOfMedians}{$begin, med, axis$}$
+\State $\textit{myaxis} \gets \text{round robin approach between 0 and 1}$
+\State $knode[med].left \gets \Call{makeTree}{$begin, med, myaxis$}$
+\State $knode[med].right \gets \Call{makeTree}{$med + 1, end, myaxis$}$
+\State \Return \text{\&{knode[med]}}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+\subsection{OpenMP}
+OpenMP is one of the application programming interfaces that facilitates the employment of a shared memory paradigm for parallelization within a node. Below the algorithm used in the implementation
+\begin{algorithm}[H]
+\caption{makeTree}
+\begin{algorithmic}[1]
+\Function{makeTree}{begin, end, axis}
+\If{$end <= begin$}\Comment{base case}
+\State return $\textit{nullptr}$
+\EndIf
+\State $\textit{median} \gets begin + (end - begin) / 2$
+\State $\Call{medianOfMedians}{$begin, med, axis$}$
+\State $\textit{myaxis} \gets \text{round robin approach between 0 and 1}$
+\color{blue}
+\State{\#pragma omp task}
+\color{black}
+\State $knode[med].left \gets \Call{makeTree}{$begin, med, myaxis$}$
+\color{blue}
+\State{\#pragma omp task}
+\color{black}
+\State $knode[med].right \gets \Call{makeTree}{$med + 1, end, myaxis$}$
+\State \Return \text{\&{knode[med]}}
+\EndFunction
+\Statex
+\Function{makeTreeParallel}{begin, end, axis}
+\State root
+\color{blue}
+\State{\#pragma omp parallel}
+\State{\#pragma omp single}
+\color{black}
+\State $\textit{root} \gets \Call{makeTree}{$begin, end, axis$}$
+\State \Return root
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+\subsection{OpenMPI}
+\begin{algorithm}[H]
+\caption{makeTreeParallel}
+\begin{algorithmic}[1]
+\Function{makeTree}{begin, end, axis}
+\If{$end <= begin$}\Comment{base case}
+\State return $\textit{nullptr}$
+\EndIf
+\State $\textit{median} \gets begin + (end - begin) / 2$
+\State $\Call{medianOfMedians}{$begin, med, axis$}$
+\State $\textit{myaxis} \gets \text{round robin approach between 0 and 1}$
+\State $knode[med].left \gets \Call{makeTree}{$begin, med, myaxis$}$
+\State $knode[med].right \gets \Call{makeTree}{$med + 1, end, myaxis$}$
+\If{$rank != 0$}
+\If{$nprocs/2 != pow(2, depth$}
+\State depth = depth + 1
+\State $knode[med].left \gets \Call{makeTreeParallel}{$begin, med, myaxis, myaxis, nprocs, depth, comm, which$}$
+\State next = next + 2
+\State $knode[med].left \gets \Call{makeTree}{$med + 1, end, myaxis, nprocs, depth, comm, which$}$
+\Else
+\If{$rank == next$}
+\color{blue}
+\State{\#pragma omp parallel}
+\State{\#pragma omp single}
+\color{black}
+\State $knode[med].left \gets \Call{makeTree}{$begin, med, index$}$
+\color{red}
+\State $knode\_to\_string <- \Call{serializeNode}{$knode[med].left$}$
+\color{black}
+\color{green}
+\color{black}
+\EndIf
+\EndIf
+\EndIf
+\State \Return \text{\&{knode[med]}}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+\section{Performance}
+\section{Conclusion}
+\end{document}

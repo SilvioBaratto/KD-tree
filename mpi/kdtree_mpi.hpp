@@ -208,13 +208,15 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
 
 template<typename coordinate, std::size_t dimension>
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_t begin, std::size_t end, 
-                                                std::size_t index, int nprocs, int depth, MPI_Comm comm, int which){
+                                                std::size_t index, int nprocs, int depth, MPI_Comm comm, int next){
     
     int rank;
     MPI_Comm_rank(comm, &rank);
     MPI_Status status;
 
-    if(end <= begin) return nullptr;
+    // if(end <= begin) return nullptr;
+
+    if(depth == floor(log2(nprocs))) return nullptr;
 
     std::size_t med = begin + (end - begin) / 2;
     auto i = _knodes.begin();
@@ -223,63 +225,52 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     index = (index + 1) % DIM;
 
     if(rank != 0){
-        if(nprocs / 2 != pow(2, depth)){
+        if(depth == (floor(log2(nprocs)) - 1)){
             depth = depth + 1;
-            _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, which);
-            which = which + 2;
-            _knodes[med]._right = make_tree_parallel(med + 1, end, index, nprocs, depth, comm, which);
+            _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, next);
+            next = next + 2;
+            _knodes[med]._right = make_tree_parallel(med + 1, end, index, nprocs, depth, comm, next);
 
         }else{
-            if(rank == which){
-                #pragma omp parallel
-                #pragma omp single 
+            if(rank == next){
                 _knodes[med]._left = make_tree(begin, med, index);
                 std::string kdtree_str = serialize_node(_knodes[med]._left);            
                 MPI_Send(kdtree_str.c_str(), kdtree_str.length(), MPI_CHAR, 0, 10, comm);
             }
-            if(which < nprocs - 1) which = which + 1;
 
-            else which = 1;
+            next = next < nprocs - 1 ? next + 1 : 1;
 
-            if(rank == which){
-                #pragma omp parallel
-                #pragma omp single
+            if(rank == next){
                 _knodes[med]._right = make_tree(med + 1, end, index);
                 std::string kdtree_str = serialize_node(_knodes[med]._right);
                 MPI_Send(kdtree_str.c_str(), kdtree_str.length(), MPI_CHAR, 0, 20, comm);
             }
         }
     }else if(rank == 0){
-        if(nprocs / 2 != pow(2, depth)){
+        if(depth == (floor(log2(nprocs)) - 1)){
             depth = depth + 1;
-            _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, which);
-            which = which + 2;
-            _knodes[med]._right = make_tree_parallel(med + 1, end, index, nprocs, depth, comm, which);
+            _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, next);
+            next = next + 2;
+            _knodes[med]._right = make_tree_parallel(med + 1, end, index, nprocs, depth, comm, next);
 
         }else{
-            int flag = 0, count;
-            
-            MPI_Probe(which, 10, comm, &status);
+            int count;         
+            MPI_Probe(next, 10, comm, &status);
             MPI_Get_count(&status, MPI_CHAR, &count);
             char * buf1 = new char[count];
-            MPI_Recv(buf1, count, MPI_CHAR, which, 10, comm, &status);
+            MPI_Recv(buf1, count, MPI_CHAR, next, 10, comm, &status);
             std::string bla1(buf1, count);
             delete[] buf1;
 
             _knodes[med]._left = deserialize_node_parallel<coordinate, dimension>(bla1);
 
-            if(which < nprocs - 1)
-                which = which + 1;
-            else
-                which = 1;
+            next = next < nprocs - 1 ? next + 1 : 1;
 
-            flag = 0;
-
-            MPI_Probe(which, 20, comm, &status);
+            MPI_Probe(next, 20, comm, &status);
             MPI_Get_count(&status, MPI_CHAR, &count);
 
             char * buf2 = new char[count];
-            MPI_Recv(buf2, count, MPI_CHAR, which, 20, comm, &status);
+            MPI_Recv(buf2, count, MPI_CHAR, next, 20, comm, &status);
             std::string bla2(buf2, count);
             delete[] buf2;
 

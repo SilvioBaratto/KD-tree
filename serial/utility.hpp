@@ -9,7 +9,6 @@
 #include <sstream>
 #include <filesystem>
 #include <omp.h>
-#include <typeinfo>
 #include "knode.hpp"
 
 

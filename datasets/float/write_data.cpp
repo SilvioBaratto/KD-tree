@@ -11,7 +11,7 @@
 #include <random>
 #include <iomanip>
 
-#define SIZE 100000000
+#define SIZE 100
 
 int main()
 {

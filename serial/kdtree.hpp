@@ -27,6 +27,7 @@ class kdtree{
 
         std::vector<knode<coordinate>> getValues(std::string filename);
         void nearest(knode<coordinate> * root, const point<coordinate, dimension>& point, size_t index);
+        void getMedianNode(std::size_t begin, std::size_t end, std::size_t index);
         const point<coordinate, dimension>& nearest(const point<coordinate, dimension>& pt);
 
         bool empty() const {return _knodes.empty();}
@@ -50,13 +51,20 @@ class kdtree{
 */
 
 template<typename coordinate, std::size_t dimension>
+void kdtree<coordinate, dimension>::getMedianNode(std::size_t begin, std::size_t end, std::size_t index){
+    std::size_t med = begin + (end - begin) / 2;
+    auto i = _knodes.begin();
+    std::nth_element(i + begin, i + med, i + end, knode_cmp<coordinate>(index));
+}
+
+template<typename coordinate, std::size_t dimension>
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, std::size_t end, std::size_t index){
     //stop criterion
     if(end <= begin) return nullptr;
     //take the median point in the dataset
     std::size_t med = begin + (end - begin) / 2;
     //save the first position in memory of the dataset
-    auto i = _knodes.begin();
+    //auto i = _knodes.begin();
     // - nth_element is a partial sorting algorithm that rearranges elementes in [first, last) such that:
     //      a. The element at the nth position is the one which should be at the position if we sort the list.
     //      b. It does not sort the list, just all the elements, which precede the nth element are not greater than it,
@@ -66,7 +74,8 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
     //          2. median of medians is a median selection algorithm for better pivot selection maily used in quickselect
     // 
     // In our case we use this method to sort the array up to the median and take the value at the median point
-    std::nth_element(i + begin, i + med, i + end, knode_cmp<coordinate>(index));
+    //std::nth_element(i + begin, i + med, i + end, knode_cmp<coordinate>(index));
+    getMedianNode(begin, med, index);
     _knodes[med]._axis = index;
     index = (index + 1) % DIM;
     // build left part
