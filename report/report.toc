@@ -4,6 +4,6 @@
 \contentsline {section}{\numberline {2}Algorithm}{2}%
 \contentsline {subsection}{\numberline {2.1}Implementation}{2}%
 \contentsline {subsection}{\numberline {2.2}OpenMP}{3}%
-\contentsline {subsection}{\numberline {2.3}OpenMPI}{4}%
-\contentsline {section}{\numberline {3}Performance}{4}%
-\contentsline {section}{\numberline {4}Conclusion}{4}%
+\contentsline {subsection}{\numberline {2.3}OpenMPI}{3}%
+\contentsline {section}{\numberline {3}Performance}{6}%
+\contentsline {section}{\numberline {4}Conclusion}{6}%

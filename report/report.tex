@@ -118,37 +118,64 @@ OpenMP is one of the application programming interfaces that facilitates the emp
 \end{algorithmic}
 \end{algorithm}
 \subsection{OpenMPI}
+The strategy used to implement the OpenMPI part was to divide for each process, a sub-tree that will be merged in only one process.\\
+The process from the 1 to N construct a sub-tree to send at the main process. The work of the process 0 is primarly to merge all the sub-trees and to construct the final kd-tree. Untill a good level of the final tree is reached, the group of processes build the tree in a serial way. A good level is reached when the half of the number of process involved is equal to the power of 2 to level. When you get to this level, each process works alone creating in a serial way the sub-tree and send it to the master process, with the rank 0. There is a shared variable that assign the work of each process, that is has to work in the right or in the left. If the number of process is smaller that the number of the sub-tree that has to built, this variable automatically assign which process has to work two times. Meanwhile, there is the process with rank 0, that does the first part like others processes and then waits to receive the messagges with all of sub-trees.\\
+The main problem of this implemented code with OpenMPI is that each sub-tree has to be serialized in a string before and deserialize the message received after.
 \begin{algorithm}[H]
 \caption{makeTreeParallel}
 \begin{algorithmic}[1]
 \Function{makeTree}{begin, end, axis}
-\If{$end <= begin$}\Comment{base case}
+\If{$depth == log2(nprocs)$}\Comment{base case}
 \State return $\textit{nullptr}$
 \EndIf
 \State $\textit{median} \gets begin + (end - begin) / 2$
 \State $\Call{medianOfMedians}{$begin, med, axis$}$
 \State $\textit{myaxis} \gets \text{round robin approach between 0 and 1}$
-\State $knode[med].left \gets \Call{makeTree}{$begin, med, myaxis$}$
-\State $knode[med].right \gets \Call{makeTree}{$med + 1, end, myaxis$}$
 \If{$rank != 0$}
-\If{$nprocs/2 != pow(2, depth$}
-\State depth = depth + 1
-\State $knode[med].left \gets \Call{makeTreeParallel}{$begin, med, myaxis, myaxis, nprocs, depth, comm, which$}$
+\If{$depth == log2(nprocs)$}
+\State depth $\gets$ depth + 1
+\State $knode[med].left \gets \Call{makeTreeParallel}{$begin, med, myaxis, myaxis, nprocs, depth, comm, next$}$
 \State next = next + 2
-\State $knode[med].left \gets \Call{makeTree}{$med + 1, end, myaxis, nprocs, depth, comm, which$}$
+\State $knode[med].left \gets \Call{makeTree}{$med + 1, end, myaxis, nprocs, depth, comm, next$}$
 \Else
 \If{$rank == next$}
-\color{blue}
-\State{\#pragma omp parallel}
-\State{\#pragma omp single}
-\color{black}
 \State $knode[med].left \gets \Call{makeTree}{$begin, med, index$}$
 \color{red}
-\State $knode\_to\_string <- \Call{serializeNode}{$knode[med].left$}$
+\State $serializeLeft <- \Call{serializeNode}{$knode[med].left$}$
 \color{black}
-\color{green}
+\color{blue}
+\State $\textit{MPI\_Send({$serializeLeft, length, MPI\_CHAR, 0, left\_tag, comm$}})$
+\color{black}
+\color{red}
+\State $serializeRight <- \Call{serializeNode}{$knode[med].right$}$
+\color{black}
+\color{blue}
+\State $\textit{MPI\_Send({$serializeRight, length, MPI\_CHAR, 0, right\_tag, comm$}})$
 \color{black}
 \EndIf
+\EndIf
+\EndIf
+\If($rank == 0$)
+\If{$depth == log2(nprocs)$}
+\State depth $\gets$ depth + 1
+\State $knode[med].left \gets \Call{makeTreeParallel}{$begin, med, index, nprocs, depth, comm, rank$}$
+\State next $\gets$ next + 2
+\State $knode[med].right \gets \Call{makeTreeParallel}{$med + 1, end, index, nprocs, depth, comm, rank$}$
+\Else 
+\color{blue}
+\State $\textit{MPI\_Probe({$next, left\_tag, comm, \&status$}})$
+\State $\textit{MPI\_Get\_Count({$\&status, MPI\_CHAR, \&count$}})$
+\State $\textit{MPI\_Recv({$buffer\_left, count MPI\_CHAR, next, left\_tag, comm, \&status$}})$
+\color{red}
+\State $knode[med].left <- \Call{deserializeParallel}{$buffer\_left$}$
+\color{black}
+\color{blue}
+\State $\textit{MPI\_Probe({$next, right\_tag, comm, \&status$}})$
+\State $\textit{MPI\_Get\_Count({$\&status, MPI\_CHAR, \&count$}})$
+\State $\textit{MPI\_Recv({$buffer\_right, count MPI\_CHAR, next, left\_tag, comm, \&status$}})$
+\color{red}
+\State $knode[med].left <- \Call{deserializeParallel}{$buffer\_right$}$
+\color{black}
 \EndIf
 \EndIf
 \State \Return \text{\&{knode[med]}}
