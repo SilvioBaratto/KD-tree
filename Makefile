@@ -1,5 +1,5 @@
 #CXX = mpic++
-.DEFAULT_GOAL := output
+.DEFAULT_GOAL := double
 COMPILER = 
 FLAGS =  
 UTILITIES = 
@@ -25,9 +25,6 @@ ifeq ($(src), omp)
 	COMPILER = g++
 	OUT = bin/tree_omp.x
 endif
-
-all:	
-	$(COMPILER) $(FLAGS) $(HPC_FLAGS) $(UTILITIES) $(SRC) -g -D double_data -o $(OUT) 
 
 int:
 	$(COMPILER) $(FLAGS) $(HPC_FLAGS) $(UTILITIES) $(SRC) -g -D int_data -o $(OUT)

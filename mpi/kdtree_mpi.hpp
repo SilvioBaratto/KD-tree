@@ -214,9 +214,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     MPI_Comm_rank(comm, &rank);
     MPI_Status status;
 
-    // if(end <= begin) return nullptr;
-
-    if(depth == floor(log2(nprocs))) return nullptr;
+    if(end <= begin) return nullptr;
 
     std::size_t med = begin + (end - begin) / 2;
     auto i = _knodes.begin();
@@ -225,7 +223,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     index = (index + 1) % DIM;
 
     if(rank != 0){
-        if(depth == (floor(log2(nprocs)) - 1)){
+        if(nprocs / 2 != pow(2, depth)){
             depth = depth + 1;
             _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, next);
             next = next + 2;
@@ -247,7 +245,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             }
         }
     }else if(rank == 0){
-        if(depth == (floor(log2(nprocs)) - 1)){
+        if(nprocs / 2 != pow(2, depth)){
             depth = depth + 1;
             _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, next);
             next = next + 2;
