@@ -36,3 +36,11 @@ Clone the repository, a `Makefile` is available along with the following recipes
 | `debug_int`    | Print a k-d tree, is reccomended to use with small dataset (< 1000)                                                                                                 |
 | `debug_double` | Print a k-d tree, is reccomended to use with small dataset (< 1000)                                                                                                 |
 
+All the executable all are in the folder `bin`.
+
+There are also an optional parameter which are used to make different executable
+
+| Parameter | Values   | Explanation
+| `src`     | `mpi`    | Compile using MPI
+| `src`     | `omp`    | Compile using OMP
+| `src`     | `serial` | Compile using a single processor
