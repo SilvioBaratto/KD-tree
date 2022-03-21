@@ -45,4 +45,3 @@ There are also an optional parameter which are used to make different executable
 | `src`     | `mpi`    | Compile using MPI                |
 | `src`     | `omp`    | Compile using OMP                |
 | `src`     | `serial` | Compile using a single processor |
-|-----------|----------|----------------------------------|
