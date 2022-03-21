@@ -45,3 +45,26 @@ There are also an optional parameter which are used to make different executable
 | `src`     | `mpi`    | Compile using MPI                |
 | `src`     | `omp`    | Compile using OMP                |
 | `src`     | `serial` | Compile using a single processor |
+
+For example:
+```
+make double src=mpi 
+make int src=mpi 
+```
+
+## Usage
+
+Run the executable `tree_omp.x` (or `tree_mpi.x`) generated in
+[Compile](#compile) with:
+
+```bash
+# OpenMP
+./tree_omp.x ../datasets/float/<name_dataset.csv>
+```
+
+or
+
+```bash
+# MPI
+mpirun -np ... tree_mpi.x ../datasets/float/<name_dataset.csv>
+```
