@@ -1,4 +1,4 @@
-# Parallel k-d tree
+# Parallel k-d tree OpenMPI and OpenMP
 
 Parallel implementation of k-d tree using MPI, OpenMP and C++17.
 
