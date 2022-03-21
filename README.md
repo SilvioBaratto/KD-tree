@@ -54,8 +54,7 @@ make int src=mpi
 
 ## Usage
 
-Run the executable `tree_omp.x` (or `tree_mpi.x`) generated in
-[Compile](#compile) with:
+Run the executable `tree_omp.x` (or `tree_mpi.x`) generated in the `bin` folder:
 
 ```bash
 # OpenMP
@@ -66,5 +65,5 @@ or
 
 ```bash
 # MPI
-mpirun -np ... tree_mpi.x ../datasets/float/<name_dataset.csv>
+mpirun -np <number processors> tree_mpi.x ../datasets/float/<name_dataset.csv>
 ```
