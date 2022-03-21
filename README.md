@@ -41,6 +41,8 @@ All the executable all are in the folder `bin`.
 There are also an optional parameter which are used to make different executable
 
 | Parameter | Values   | Explanation
-| `src`     | `mpi`    | Compile using MPI
-| `src`     | `omp`    | Compile using OMP
-| `src`     | `serial` | Compile using a single processor
+|-----------|----------|----------------------------------|
+| `src`     | `mpi`    | Compile using MPI                |
+| `src`     | `omp`    | Compile using OMP                |
+| `src`     | `serial` | Compile using a single processor |
+|-----------|----------|----------------------------------|
