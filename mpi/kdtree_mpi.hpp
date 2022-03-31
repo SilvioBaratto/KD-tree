@@ -144,10 +144,8 @@ knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end,
     knode<coordinate> * tree= new knode<coordinate>{point};
 
     // std::cout << "LEFT: (" << x << ", " << y << ")" << std::endl; 
-    #pragma omp task
     tree->_left = deserialize_pointer<coordinate, dimension>(begin + 1, med, x + 2, y + 2, data);
     // std::cout << "RIGHT: (" << x << ", " << y << ")" << std::endl;
-    #pragma omp task
     tree->_right = deserialize_pointer<coordinate, dimension>(med + 1, end, med + 1, med + 2, data);
 
 	return tree;
@@ -485,7 +483,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel_pointer(st
             coordinate * buf1 = new coordinate[count];
             MPI_Recv(buf1, count, MPI_FLOAT, next, 10, comm, &status);
 
-            _knodes[med]._left = deserialize_pointer_parallel<coordinate, dimension>(0, count, 0, 1, buf1);
+            _knodes[med]._left = deserialize_pointer<coordinate, dimension>(0, count, 0, 1, buf1);
             delete[] buf1;
 
             next = next < nprocs - 1 ? next + 1 : 1;
@@ -496,7 +494,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel_pointer(st
             coordinate * buf2 = new coordinate[count];
             MPI_Recv(buf2, count, MPI_FLOAT, next, 20, comm, &status);
 
-            _knodes[med]._right = deserialize_pointer_parallel<coordinate, dimension>(0, count, 0, 1, buf2);
+            _knodes[med]._right = deserialize_pointer<coordinate, dimension>(0, count, 0, 1, buf2);
             delete[] buf2;
 
         }
