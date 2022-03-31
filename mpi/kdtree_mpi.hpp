@@ -144,13 +144,11 @@ knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end,
     knode<coordinate> * tree= new knode<coordinate>{point};
 
     // std::cout << "LEFT: (" << x << ", " << y << ")" << std::endl; 
-    if(leftsize != 0){
-        tree->_left = deserialize_pointer<coordinate, dimension>(begin + 1, med, x + 2, y + 2, data);
-    }
+    #pragma omp task
+    tree->_left = deserialize_pointer<coordinate, dimension>(begin + 1, med, x + 2, y + 2, data);
     // std::cout << "RIGHT: (" << x << ", " << y << ")" << std::endl;
-    if(rightsize != 0){
-	    tree->_right = deserialize_pointer<coordinate, dimension>(med + 1, end, med + 1, med + 2, data);
-    }
+    #pragma omp task
+    tree->_right = deserialize_pointer<coordinate, dimension>(med + 1, end, med + 1, med + 2, data);
 
 	return tree;
 }
@@ -264,6 +262,19 @@ knode<coordinate> * deserialize_node_parallel(std::string data){
     return root;
 }
 
+template<typename coordinate, std::size_t dimension>
+knode<coordinate> * deserialize_pointer_parallel(std::size_t begin, std::size_t end, 
+                                        std::size_t x, std::size_t y, coordinate * data){
+    knode<coordinate> * root;
+    #pragma omp parallel shared(root)
+    {
+        #pragma omp single
+        root = deserialize_pointer<coordinate, dimension>(begin, end, x, y, data);
+    }
+    #pragma omp barrier
+    return root;
+}
+
 /**
 *   @brief main function to produce the tree in serial. 
 *   @param begin the beginnin of the dataset
@@ -294,48 +305,15 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
     index = (index + 1) % DIM;
 
     // build left part
+    #pragma omp task
     _knodes[med]._left = make_tree(begin, med, index);
     // build right part
+    #pragma omp task
     _knodes[med]._right = make_tree(med + 1, end, index);
     // return the pointer
     return &_knodes[med];
 }
 
-int child(int num, int depth){
-return num+pow(2,depth);
-}
-
-
-int initdepth(int num){
-	if(num==0){
-		return 0;
-	}
-	return floor(log2(num))+1;
-}
-
-
-int father(int num){
-	return num-pow(2,initdepth(num)-1);
-}
-
-int sizerank(int num, int n, int depth){
-
-	if(depth>0){
-		int temp=sizerank(father(num),n,depth-1);
-		if (num<pow(2,depth-1)){
-
-			return temp/2;
-		}
-		else{
-
-			return temp-temp/2-1;
-		}
-	}
-	else{
-		return n;
-	}
-	
-}
 /*
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_t begin, std::size_t end, 
                                                 std::size_t index, int nprocs, int depth, MPI_Comm comm, int next){
@@ -363,6 +341,8 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     }
 }
 */
+
+
 
 
 template<typename coordinate, std::size_t dimension>
@@ -505,7 +485,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel_pointer(st
             coordinate * buf1 = new coordinate[count];
             MPI_Recv(buf1, count, MPI_FLOAT, next, 10, comm, &status);
 
-            _knodes[med]._left = deserialize_pointer<coordinate, dimension>(0, count, 0, 1, buf1);
+            _knodes[med]._left = deserialize_pointer_parallel<coordinate, dimension>(0, count, 0, 1, buf1);
             delete[] buf1;
 
             next = next < nprocs - 1 ? next + 1 : 1;
@@ -516,7 +496,7 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel_pointer(st
             coordinate * buf2 = new coordinate[count];
             MPI_Recv(buf2, count, MPI_FLOAT, next, 20, comm, &status);
 
-            _knodes[med]._right = deserialize_pointer<coordinate, dimension>(0, count, 0, 1, buf2);
+            _knodes[med]._right = deserialize_pointer_parallel<coordinate, dimension>(0, count, 0, 1, buf2);
             delete[] buf2;
 
         }
