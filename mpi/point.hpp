@@ -21,6 +21,9 @@ class point{
             std::copy_n(list.begin(), n, _points.begin());
         }
 
+        point():
+            _points{0, 0} {}
+
         coordinate get(std::size_t index) const{
             return _points[index];
         }

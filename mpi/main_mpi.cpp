@@ -40,8 +40,15 @@ int main(int argc, char * argv[]) {
     #ifdef double_data
         kdtree<float, 2> tree(filename, nprocs, rank);
         if(rank == 0){
+            // knode<float> * root = tree.get_root();
+            // print_tree(root);
+            // std::vector<float> data;
+            // float * prova = serialize_pointer<float, 2>(root, data);
+            // knode<float> * des = deserialize_pointer<float, 2>(0, data.size(), 0, 1, prova);
+            // print_tree(des);
+            
             #ifdef double_data_DEBUG
-                knode<float> * root = tree.get_root();
+                // knode<float> * root = tree.get_root();
                 point<float, 2> n = tree.nearest({{0.361, 0.674}});
                 std::cout << filename << "\n";
                 // this are utility and debug functions

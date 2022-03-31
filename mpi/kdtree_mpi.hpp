@@ -21,7 +21,8 @@ class kdtree{
         _knodes{getValues(filename)} {
             double mpi_time;
             mpi_time = MPI_Wtime(); 
-            _root = make_tree_parallel(0, _knodes.size(), 0, nprocs, 0, MPI_COMM_WORLD, 1);
+            _root = make_tree_parallel_pointer(0, _knodes.size(), 0, nprocs, 0, MPI_COMM_WORLD, 1);
+            // _root = make_tree(0, _knodes.size(), 0);
             mpi_time = MPI_Wtime() - mpi_time;
             if(rank == 0){
                 std::cout << nprocs << ", " << mpi_time << std::endl;              
@@ -30,8 +31,10 @@ class kdtree{
 
         knode<coordinate> * make_tree(std::size_t begin, std::size_t end, std::size_t index);
         knode<coordinate> * get_root() {return _root;}
-        knode<coordinate> * make_tree_parallel(std::size_t begin, std::size_t end, 
+        knode<coordinate> * make_tree_parallel_string(std::size_t begin, std::size_t end, 
                                                 std::size_t index, int size, int depth, MPI_Comm comm, int which);
+        knode<coordinate> * make_tree_parallel_pointer(std::size_t begin, std::size_t end, 
+                                                std::size_t index, int nprocs, int depth, MPI_Comm comm, int next);
         knode<coordinate> * buffer(int begin, int end);
 
         std::vector<knode<coordinate>> getValues(std::string filename);
@@ -57,6 +60,102 @@ class kdtree{
 *   @param knode
 @   @return knode to string
 */
+
+// ******************** guglielmo try
+//this function serializes the tree in an std::vector
+template<typename coordinate, std::size_t dimension>
+coordinate * serialize_pointer(knode<coordinate> * tree, std::vector<coordinate>& data){
+	for (int i = 0; i < dimension; i++){
+		data.push_back(tree->_point.get(i));
+	}
+	if(tree->_left != NULL) {
+		serialize_pointer<coordinate, dimension>(tree->_left, data);
+	}
+    if(tree->_right != NULL) {
+        serialize_pointer<coordinate, dimension>(tree->_right, data);
+    }
+    return data.data();
+}
+
+template<typename coordinate, std::size_t dimension>
+point<coordinate, dimension> get_point(std::size_t begin, coordinate * data){
+    point<coordinate, dimension> point;
+    if(begin == 0){
+        point = {data[begin], data[begin + 1]};
+    }
+    else{
+        point = {data[begin], data[begin + 2]};
+    }
+
+    return point;
+}
+
+//this function deserializes an std::vector in  a tree
+
+/*
+template<typename coordinate, std::size_t dimension>
+knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end, 
+                                coordinate * data){
+
+	int size = end - begin;
+	int rightsize = size / 2;
+	int leftsize = size - rightsize - 1;
+
+    //point<coordinate, dimension> point = get_point<coordinate, dimension>(begin, data);
+    point<coordinate, dimension> point{{data[0], data[0]}};
+	knode<coordinate> * tree= new knode<coordinate>{point};
+
+	std::swap(tree->_point, point);
+
+	if(leftsize != 0){
+        tree->_left=deserialize_pointer<coordinate, dimension>(begin + rightsize + 1, end, data);
+	}
+
+	if(rightsize!=0){
+		tree->_right=deserialize_pointer<coordinate, dimension>(begin + 1, begin + rightsize + 1, data);
+	}
+
+	return tree;
+}
+*/
+
+template<typename coordinate, std::size_t dimension>
+knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end, 
+                                        std::size_t x, std::size_t y, coordinate * data){ 
+
+    std::size_t med = begin + (end - begin) / 2;
+
+    int size = end - begin;
+
+	int rightsize = size / 2;
+
+	int leftsize = size - rightsize - 1;
+
+    std::size_t half = end - begin;
+
+    // point<coordinate, dimension> point = get_point<coordinate, dimension>(begin, data); 
+
+    point<coordinate, dimension> point{{data[x], data[y]}};
+
+    if(end <= begin){
+        return nullptr;
+    }
+
+    knode<coordinate> * tree= new knode<coordinate>{point};
+
+    // std::cout << "LEFT: (" << x << ", " << y << ")" << std::endl; 
+    if(leftsize != 0){
+        tree->_left = deserialize_pointer<coordinate, dimension>(begin + 1, med, x + 2, y + 2, data);
+    }
+    // std::cout << "RIGHT: (" << x << ", " << y << ")" << std::endl;
+    if(rightsize != 0){
+	    tree->_right = deserialize_pointer<coordinate, dimension>(med + 1, end, med + 1, med + 2, data);
+    }
+
+	return tree;
+}
+
+// ******************** end guglielmo
 
 template<typename coordinate>
 std::string serialize_node(knode<coordinate> * node){
@@ -195,19 +294,79 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
     index = (index + 1) % DIM;
 
     // build left part
-    #pragma omp task
     _knodes[med]._left = make_tree(begin, med, index);
     // build right part
-    #pragma omp task
     _knodes[med]._right = make_tree(med + 1, end, index);
     // return the pointer
     return &_knodes[med];
 }
 
+int child(int num, int depth){
+return num+pow(2,depth);
+}
+
+
+int initdepth(int num){
+	if(num==0){
+		return 0;
+	}
+	return floor(log2(num))+1;
+}
+
+
+int father(int num){
+	return num-pow(2,initdepth(num)-1);
+}
+
+int sizerank(int num, int n, int depth){
+
+	if(depth>0){
+		int temp=sizerank(father(num),n,depth-1);
+		if (num<pow(2,depth-1)){
+
+			return temp/2;
+		}
+		else{
+
+			return temp-temp/2-1;
+		}
+	}
+	else{
+		return n;
+	}
+	
+}
+/*
+knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_t begin, std::size_t end, 
+                                                std::size_t index, int nprocs, int depth, MPI_Comm comm, int next){
+
+    MPI_Request request;
+    MPI_Status status;
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    depth = initdepth(rank);
+
+    if(end <= begin) return nullptr;
+
+    std::size_t med = begin + (end - begin) / 2;
+    auto i = _knodes.begin();
+    std::nth_element(i + begin, i + med, i + end, knode_cmp<coordinate>(index));
+    _knodes[med]._axis = index;
+    index = (index + 1) % DIM;
+
+    if(rank != 0){
+        MPI_Recv( , dimension*sizerank(rank, n, depth), MPI_FLOAT, father(rank), 0, MPI_COMM_WORLD, &status);
+    }
+
+    if(child(rank, depth) < nprocs && sizerank(child(rank, depth), end, depth + 1) > 2){
+        MPI_Isend()
+    }
+}
+*/
 
 
 template<typename coordinate, std::size_t dimension>
-knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_t begin, std::size_t end, 
+knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel_string(std::size_t begin, std::size_t end, 
                                                 std::size_t index, int nprocs, int depth, MPI_Comm comm, int next){
     
     int rank;
@@ -222,18 +381,21 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
     _knodes[med]._axis = index;
     index = (index + 1) % DIM;
 
+    // vector<float>  
+
     if(rank != 0){
         if(nprocs / 2 != pow(2, depth)){
             depth = depth + 1;
-            _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, next);
+            _knodes[med]._left = make_tree_parallel_string(begin, med, index, nprocs, depth, comm, next);
             next = next + 2;
-            _knodes[med]._right = make_tree_parallel(med + 1, end, index, nprocs, depth, comm, next);
+            _knodes[med]._right = make_tree_parallel_string(med + 1, end, index, nprocs, depth, comm, next);
 
         }else{
             if(rank == next){
                 _knodes[med]._left = make_tree(begin, med, index);
                 std::string kdtree_str = serialize_node(_knodes[med]._left);            
                 MPI_Send(kdtree_str.c_str(), kdtree_str.length(), MPI_CHAR, 0, 10, comm);
+                // deleteTree<coordinate, dimension>(_knodes[med]._left);
             }
 
             next = next < nprocs - 1 ? next + 1 : 1;
@@ -242,18 +404,22 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
                 _knodes[med]._right = make_tree(med + 1, end, index);
                 std::string kdtree_str = serialize_node(_knodes[med]._right);
                 MPI_Send(kdtree_str.c_str(), kdtree_str.length(), MPI_CHAR, 0, 20, comm);
+                // deleteTree<coordinate, dimension>(_knodes[med]._right);
+                
             }
         }
     }else if(rank == 0){
         if(nprocs / 2 != pow(2, depth)){
             depth = depth + 1;
-            _knodes[med]._left = make_tree_parallel(begin, med, index, nprocs, depth, comm, next);
+            _knodes[med]._left = make_tree_parallel_string(begin, med, index, nprocs, depth, comm, next);
             next = next + 2;
-            _knodes[med]._right = make_tree_parallel(med + 1, end, index, nprocs, depth, comm, next);
+            _knodes[med]._right = make_tree_parallel_string(med + 1, end, index, nprocs, depth, comm, next);
 
         }else{
             int count;         
             MPI_Probe(next, 10, comm, &status);
+            // CHAR
+            
             MPI_Get_count(&status, MPI_CHAR, &count);
             char * buf1 = new char[count];
             MPI_Recv(buf1, count, MPI_CHAR, next, 10, comm, &status);
@@ -265,14 +431,93 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             next = next < nprocs - 1 ? next + 1 : 1;
 
             MPI_Probe(next, 20, comm, &status);
+            // CHAR
+            
             MPI_Get_count(&status, MPI_CHAR, &count);
-
             char * buf2 = new char[count];
             MPI_Recv(buf2, count, MPI_CHAR, next, 20, comm, &status);
             std::string bla2(buf2, count);
             delete[] buf2;
-
             _knodes[med]._right = deserialize_node_parallel<coordinate, dimension>(bla2);
+
+        }
+    }
+
+    return &_knodes[med];
+}
+
+template<typename coordinate, std::size_t dimension>
+knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel_pointer(std::size_t begin, std::size_t end, 
+                                                std::size_t index, int nprocs, int depth, MPI_Comm comm, int next){
+    
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Status status;
+    MPI_Request request;
+
+    if(end <= begin) return nullptr;
+
+    std::size_t med = begin + (end - begin) / 2;
+    auto i = _knodes.begin();
+    std::nth_element(i + begin, i + med, i + end, knode_cmp<coordinate>(index));
+    _knodes[med]._axis = index;
+    index = (index + 1) % DIM;
+
+    // vector<float>  
+
+    if(rank != 0){
+        if(nprocs / 2 != pow(2, depth)){
+            depth = depth + 1;
+            _knodes[med]._left = make_tree_parallel_pointer(begin, med, index, nprocs, depth, comm, next);
+            next = next + 2;
+            _knodes[med]._right = make_tree_parallel_pointer(med + 1, end, index, nprocs, depth, comm, next);
+
+        }else{
+            if(rank == next){
+                _knodes[med]._left = make_tree(begin, med, index); 
+                std::vector<coordinate> data;
+                float * ser = serialize_pointer<coordinate, dimension>(_knodes[med]._left, data);
+                MPI_Send(ser, data.size(), MPI_FLOAT, 0, 10, comm);
+            }
+
+            next = next < nprocs - 1 ? next + 1 : 1;
+
+            if(rank == next){
+                _knodes[med]._right = make_tree(med + 1, end, index);
+                std::vector<coordinate> data;
+                float * ser = serialize_pointer<coordinate, dimension>(_knodes[med]._right, data);
+                MPI_Send(ser, data.size(), MPI_FLOAT, 0, 20, comm);
+                
+            }
+        }
+    }else if(rank == 0){
+        if(nprocs / 2 != pow(2, depth)){
+            depth = depth + 1;
+            _knodes[med]._left = make_tree_parallel_pointer(begin, med, index, nprocs, depth, comm, next);
+            next = next + 2;
+            _knodes[med]._right = make_tree_parallel_pointer(med + 1, end, index, nprocs, depth, comm, next);
+
+        }else{
+            int count;         
+            MPI_Probe(next, 10, comm, &status);
+            
+            MPI_Get_count(&status, MPI_FLOAT, &count);
+            coordinate * buf1 = new coordinate[count];
+            MPI_Recv(buf1, count, MPI_FLOAT, next, 10, comm, &status);
+
+            _knodes[med]._left = deserialize_pointer<coordinate, dimension>(0, count, 0, 1, buf1);
+            delete[] buf1;
+
+            next = next < nprocs - 1 ? next + 1 : 1;
+
+            MPI_Probe(next, 20, comm, &status);
+            
+            MPI_Get_count(&status, MPI_FLOAT, &count);
+            coordinate * buf2 = new coordinate[count];
+            MPI_Recv(buf2, count, MPI_FLOAT, next, 20, comm, &status);
+
+            _knodes[med]._right = deserialize_pointer<coordinate, dimension>(0, count, 0, 1, buf2);
+            delete[] buf2;
 
         }
     }
