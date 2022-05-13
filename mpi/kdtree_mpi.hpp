@@ -61,8 +61,6 @@ class kdtree{
 @   @return knode to string
 */
 
-// ******************** guglielmo try
-//this function serializes the tree in an std::vector
 template<typename coordinate, std::size_t dimension>
 coordinate * serialize_pointer(knode<coordinate> * tree, std::vector<coordinate>& data){
 	for (int i = 0; i < dimension; i++){
@@ -90,34 +88,6 @@ point<coordinate, dimension> get_point(std::size_t begin, coordinate * data){
     return point;
 }
 
-//this function deserializes an std::vector in  a tree
-
-/*
-template<typename coordinate, std::size_t dimension>
-knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end, 
-                                coordinate * data){
-
-	int size = end - begin;
-	int rightsize = size / 2;
-	int leftsize = size - rightsize - 1;
-
-    //point<coordinate, dimension> point = get_point<coordinate, dimension>(begin, data);
-    point<coordinate, dimension> point{{data[0], data[0]}};
-	knode<coordinate> * tree= new knode<coordinate>{point};
-
-	std::swap(tree->_point, point);
-
-	if(leftsize != 0){
-        tree->_left=deserialize_pointer<coordinate, dimension>(begin + rightsize + 1, end, data);
-	}
-
-	if(rightsize!=0){
-		tree->_right=deserialize_pointer<coordinate, dimension>(begin + 1, begin + rightsize + 1, data);
-	}
-
-	return tree;
-}
-*/
 
 template<typename coordinate, std::size_t dimension>
 knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end, 
@@ -133,8 +103,6 @@ knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end,
 
     std::size_t half = end - begin;
 
-    // point<coordinate, dimension> point = get_point<coordinate, dimension>(begin, data); 
-
     point<coordinate, dimension> point{{data[x], data[y]}};
 
     if(end <= begin){
@@ -143,15 +111,12 @@ knode<coordinate> * deserialize_pointer(std::size_t begin, std::size_t end,
 
     knode<coordinate> * tree= new knode<coordinate>{point};
 
-    // std::cout << "LEFT: (" << x << ", " << y << ")" << std::endl; 
     tree->_left = deserialize_pointer<coordinate, dimension>(begin + 1, med, x + 2, y + 2, data);
-    // std::cout << "RIGHT: (" << x << ", " << y << ")" << std::endl;
+
     tree->_right = deserialize_pointer<coordinate, dimension>(med + 1, end, med + 1, med + 2, data);
 
 	return tree;
 }
-
-// ******************** end guglielmo
 
 template<typename coordinate>
 std::string serialize_node(knode<coordinate> * node){
@@ -311,37 +276,6 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree(std::size_t begin, 
     // return the pointer
     return &_knodes[med];
 }
-
-/*
-knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_t begin, std::size_t end, 
-                                                std::size_t index, int nprocs, int depth, MPI_Comm comm, int next){
-
-    MPI_Request request;
-    MPI_Status status;
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    depth = initdepth(rank);
-
-    if(end <= begin) return nullptr;
-
-    std::size_t med = begin + (end - begin) / 2;
-    auto i = _knodes.begin();
-    std::nth_element(i + begin, i + med, i + end, knode_cmp<coordinate>(index));
-    _knodes[med]._axis = index;
-    index = (index + 1) % DIM;
-
-    if(rank != 0){
-        MPI_Recv( , dimension*sizerank(rank, n, depth), MPI_FLOAT, father(rank), 0, MPI_COMM_WORLD, &status);
-    }
-
-    if(child(rank, depth) < nprocs && sizerank(child(rank, depth), end, depth + 1) > 2){
-        MPI_Isend()
-    }
-}
-*/
-
-
-
 
 template<typename coordinate, std::size_t dimension>
 knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel_string(std::size_t begin, std::size_t end, 
