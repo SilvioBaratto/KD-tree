@@ -2,44 +2,25 @@
 
 module load openmpi-4.1.1+gnu-9.3.0
 
-make all src=mpi
-make all src=omp
-make all src=serial
+make src=mpi
 
-cd datasets/float/
+cd time/strong/
 
-c++ write_data.cpp -o write_data.x
-echo "writing data"
-./write_data.x
-echo "finish writing datasets"
+rm mpi.csv
 
 cd ..
+
 cd ..
 
 cd bin
 
+OMP_NUM_THREADS=1
+
 declare -a nprocs=(2 4 8 16 24 32 48)
+#declare -a nprocs=(2 4 8 16 24)
 
 for i in "${nprocs[@]}"
 do
     echo "executing mpi with: ${i}"
-    mpirun -np ${i} tree_mpi.x ../datasets/float/dataset.csv >> ../time/strong/mpi.out
+    mpirun -np ${i} tree_mpi.x ../datasets/float/dataset.csv >> ../time/strong/mpi.csv
 done
-
-for i in "${nprocs[@]}"
-do
-    echo "executing omp with: ${i}"
-    export OMP_NUM_THREADS=${i} 
-    ./tree_omp.x ../datasets/float/dataset.csv >> ../time/strong/omp.out 
-done
-
-for i in "${nprocs[@]}"
-do
-    echo "executing serial with: ${i}"
-    export OMP_NUM_THREADS=${i}
-    ./tree_serial.x ../datasets/float/dataset.csv >> ../time/strong/serial.out
-done
-
-cd ..
-cd datasets/float/
-rm *.csv

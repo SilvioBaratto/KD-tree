@@ -11,7 +11,7 @@
 #include <random>
 #include <iomanip>
 
-#define SIZE 100
+#define SIZE 100000000
 
 int main()
 {
@@ -28,3 +28,4 @@ int main()
     myfile.close();
     return 0;  
 }
+
