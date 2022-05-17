@@ -91,7 +91,6 @@ knode<coordinate> * kdtree<coordinate, dimension>::make_tree_parallel(std::size_
             root = make_tree(begin, end, index);
         }
     }
-    #pragma omp barrier
     return root;
 }
 
