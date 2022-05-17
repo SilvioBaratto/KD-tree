@@ -225,19 +225,6 @@ knode<coordinate> * deserialize_node_parallel(std::string data){
     return root;
 }
 
-template<typename coordinate, std::size_t dimension>
-knode<coordinate> * deserialize_pointer_parallel(std::size_t begin, std::size_t end, 
-                                        std::size_t x, std::size_t y, coordinate * data){
-    knode<coordinate> * root;
-    #pragma omp parallel shared(root)
-    {
-        #pragma omp single
-        root = deserialize_pointer<coordinate, dimension>(begin, end, x, y, data);
-    }
-    #pragma omp barrier
-    return root;
-}
-
 /**
 *   @brief main function to produce the tree in serial. 
 *   @param begin the beginnin of the dataset
